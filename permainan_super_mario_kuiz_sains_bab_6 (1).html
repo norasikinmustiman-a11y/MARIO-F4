@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Mario - Kuiz Sains SPM Bab 6</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Fredoka+One&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fredoka One', cursive, sans-serif;
+            background-color: #5c94fc;
+            overflow: hidden;
+            user-select: none;
+        }
+        .pixel-font {
+            font-family: 'Press Start 2P', monospace;
+        }
+        canvas {
+            display: block;
+            background: linear-gradient(to bottom, #5c94fc 0%, #85b0ff 70%, #c4d7ff 100%);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .modal {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-2 md:p-4">
+
+    <!-- Start / Name Registration Screen (Overlay) -->
+    <div id="startModal" class="fixed inset-0 modal flex items-center justify-center p-4 z-50">
+        <div class="bg-gradient-to-b from-yellow-300 via-amber-400 to-orange-500 border-8 border-yellow-200 rounded-3xl max-w-md w-full p-6 text-center shadow-2xl text-gray-900">
+            <div class="text-5xl mb-2">🍄</div>
+            <h1 class="text-2xl md:text-3xl font-extrabold text-red-700 tracking-wide mb-1 pixel-font">SUPER MARIO</h1>
+            <p class="text-sm font-bold text-gray-800 mb-6">KUIZ SAINS SPM: BAB 6</p>
+
+            <form id="startForm" onsubmit="startGame(event)" class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-extrabold text-amber-950 uppercase mb-1">Nama Murid:</label>
+                    <input type="text" id="playerName" required placeholder="Contoh: Ahmad Bin Zaki" class="w-full px-4 py-3 rounded-xl border-2 border-amber-600 focus:outline-none focus:ring-4 focus:ring-red-500 text-sm font-semibold">
+                </div>
+                <div>
+                    <label class="block text-xs font-extrabold text-amber-950 uppercase mb-1">Kelas:</label>
+                    <input type="text" id="playerClass" required placeholder="Contoh: 5 Sains 1" class="w-full px-4 py-3 rounded-xl border-2 border-amber-600 focus:outline-none focus:ring-4 focus:ring-red-500 text-sm font-semibold">
+                </div>
+                <button type="submit" class="w-full mt-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold py-3.5 px-6 rounded-xl text-lg shadow-lg border-b-4 border-red-900 transition flex items-center justify-center space-x-2">
+                    <span>MULA MAIN</span> 🎮
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Header / Dashboard HUD -->
+    <div class="w-full max-w-5xl bg-red-600 border-4 border-yellow-400 rounded-t-xl p-2 md:p-3 flex justify-between items-center text-white shadow-lg">
+        <div class="flex items-center space-x-2">
+            <span class="text-xl md:text-2xl">🍄</span>
+            <div>
+                <div id="hudPlayerInfo" class="text-[10px] md:text-xs text-yellow-300 font-bold truncate max-w-[120px] md:max-w-[200px]">PEMAIN: -</div>
+                <div id="score" class="text-sm md:text-2xl font-bold tracking-wider">SKOR: 0</div>
+            </div>
+        </div>
+        <div class="text-center">
+            <div class="text-[10px] md:text-xs text-yellow-300 pixel-font">KEMAJUAN</div>
+            <div id="progress" class="text-xs md:text-xl font-bold">0 / 20</div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <div class="text-right">
+                <div class="text-[10px] md:text-xs text-yellow-300 pixel-font">BAB 6</div>
+                <div class="text-xs font-semibold hidden sm:block">Sokongan & Pergerakan</div>
+            </div>
+            <span class="text-xl md:text-2xl">⭐</span>
+        </div>
+    </div>
+
+    <!-- Canvas Game Container -->
+    <div class="relative w-full max-w-5xl bg-black border-x-4 border-b-4 border-yellow-400 rounded-b-xl overflow-hidden shadow-2xl">
+        <canvas id="gameCanvas" class="w-full h-[360px] sm:h-[420px] md:h-[500px]"></canvas>
+
+        <!-- Touch Controls for Mobile/Tablet -->
+        <div class="absolute bottom-2 left-2 right-2 flex justify-between items-center pointer-events-none touch-none">
+            <div class="flex gap-2 pointer-events-auto">
+                <button id="btnLeft" class="w-14 h-14 active:scale-95 bg-yellow-500/90 active:bg-yellow-600 text-white rounded-full font-bold text-2xl shadow-xl flex items-center justify-center border-2 border-white select-none">◀</button>
+                <button id="btnRight" class="w-14 h-14 active:scale-95 bg-yellow-500/90 active:bg-yellow-600 text-white rounded-full font-bold text-2xl shadow-xl flex items-center justify-center border-2 border-white select-none">▶</button>
+            </div>
+            <div class="pointer-events-auto">
+                <button id="btnJump" class="w-16 h-16 active:scale-95 bg-red-500/90 active:bg-red-600 text-white rounded-full font-bold text-sm shadow-xl flex items-center justify-center border-2 border-white select-none">LOMPAT</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions Banner -->
+    <div class="mt-2 text-center text-white bg-blue-900/80 px-4 py-1.5 rounded-full text-xs md:text-sm font-sans border border-blue-400 max-w-xl">
+        💡 <b>Telefon:</b> Guna butang skrin di bawah. <b>PC:</b> Kekunci <b>[⬅ ➡]</b> & <b>[Spacebar / ⬆]</b>.
+    </div>
+
+    <!-- Guide Modal for Teachers on How to Publish -->
+    <div id="teacherPublishGuideModal" class="hidden fixed inset-0 modal flex items-center justify-center p-3 md:p-4 z-50">
+        <div class="bg-white border-4 border-blue-600 rounded-2xl max-w-lg w-full p-5 shadow-2xl text-gray-800 text-left max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-2 mb-3">
+                <h3 class="text-base font-bold text-blue-900 flex items-center gap-2">🚀 Cara Publish Permainan untuk Murid</h3>
+                <button onclick="document.getElementById('teacherPublishGuideModal').classList.add('hidden')" class="text-gray-500 hover:text-red-600 font-bold text-xl">&times;</button>
+            </div>
+            
+            <div class="space-y-3 text-xs md:text-sm leading-relaxed">
+                <p>Pilih salah satu cara percuma di bawah untuk berkongsi *link* permainan ini dengan murid anda:</p>
+                
+                <div class="bg-blue-50 p-3 rounded-xl border border-blue-200">
+                    <div class="font-bold text-blue-900 mb-1">Cara 1: Tiiny.host (Paling Mudah & Pantas - 1 Minit)</div>
+                    <ol class="list-decimal pl-4 space-y-1">
+                        <li>Simpan fail ini di komputer anda sebagai <b>index.html</b>.</li>
+                        <li>Layari laman web <a href="https://tiiny.host" target="_blank" class="text-blue-600 underline font-semibold">tiiny.host</a>.</li>
+                        <li>*Drag & drop* fail <b>index.html</b> tersebut dan tekan <b>Publish</b>.</li>
+                        <li>Salin pautan (link) yang diberikan dan hantar ke WhatsApp / Telegram murid.</li>
+                    </ol>
+                </div>
+
+                <div class="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                    <div class="font-bold text-amber-900 mb-1">Cara 2: Github Pages (Percuma Selamanya)</div>
+                    <ol class="list-decimal pl-4 space-y-1">
+                        <li>Muat naik fail <b>index.html</b> ke repository GitHub anda.</li>
+                        <li>Pergi ke <b>Settings</b> &rarr; <b>Pages</b>.</li>
+                        <li>Pilih cawangan <b>main / master</b> dan klik <b>Save</b>.</li>
+                        <li>Dapatkan link web rasmi permainan anda untuk diberikan kepada murid.</li>
+                    </ol>
+                </div>
+
+                <div class="bg-green-50 p-3 rounded-xl border border-green-200">
+                    <div class="font-bold text-green-900 mb-1">Cara 3: Google Drive (Sebagai Fail HTML)</div>
+                    <p>Muat naik fail ke Google Drive &rarr; Setkan akses ke <i>"Anyone with the link"</i> &rarr; Hantar link fail kepada murid (murid boleh muat turun & buka terus di browser handphone/PC tanpa internet!).</p>
+                </div>
+            </div>
+
+            <button onclick="document.getElementById('teacherPublishGuideModal').classList.add('hidden')" class="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl text-xs md:text-sm shadow">
+                Faham & Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- Question Modal -->
+    <div id="questionModal" class="hidden fixed inset-0 modal flex items-center justify-center p-3 md:p-4 z-50">
+        <div class="bg-gradient-to-b from-amber-100 to-orange-100 border-4 border-yellow-600 rounded-2xl max-w-lg w-full p-4 md:p-5 shadow-2xl max-h-[90vh] overflow-y-auto flex flex-col items-center">
+            <div class="w-full flex justify-between items-center mb-2 border-b-2 border-amber-300 pb-2">
+                <span id="modalQNum" class="bg-red-600 text-white text-[10px] md:text-xs pixel-font px-2.5 py-1 rounded-full shadow">SOALAN 1</span>
+                <span class="text-xs md:text-sm text-amber-800 font-bold">10 Markah</span>
+            </div>
+
+            <!-- Reference Image Display for Skeleton Questions -->
+            <div id="modalImageContainer" class="w-full mb-3 flex justify-center bg-white p-2 rounded-xl border-2 border-amber-300 shadow-inner">
+                <img id="modalImage" src="" alt="Rajah Sains SPM Bab 6" class="max-h-72 md:max-h-80 w-auto object-contain rounded-lg">
+            </div>
+
+            <div id="modalQuestion" class="w-full text-sm md:text-base font-medium text-gray-800 mb-3 leading-relaxed text-left">
+                <!-- Question Text -->
+            </div>
+
+            <div id="modalOptions" class="w-full space-y-2">
+                <!-- Options Buttons rendered via JS -->
+            </div>
+
+            <div id="feedback" class="w-full mt-3 text-center font-bold text-sm md:text-base hidden p-2 rounded-lg"></div>
+        </div>
+    </div>
+
+    <!-- Final Victory Modal with Name & Class Certificate -->
+    <div id="victoryModal" class="hidden fixed inset-0 modal flex items-center justify-center p-3 md:p-4 z-50">
+        <div class="bg-gradient-to-b from-yellow-300 via-amber-400 to-orange-500 border-8 border-yellow-200 rounded-3xl max-w-lg w-full p-6 text-center shadow-2xl text-gray-900 max-h-[95vh] overflow-y-auto">
+            <div class="text-5xl mb-1 animate-bounce">🏆</div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-red-700 tracking-wide mb-1 pixel-font">TAHNIAH!</h2>
+            <p class="text-xs md:text-sm font-semibold text-gray-800 mb-4">Anda telah berjaya menyelesaikan semua 20 soalan Sains!</p>
+            
+            <div class="bg-white/95 rounded-xl p-4 mb-4 shadow-inner border-2 border-amber-300 text-left space-y-1">
+                <div class="flex justify-between items-center border-b pb-1 mb-2">
+                    <div class="text-xs text-gray-500 font-bold uppercase">SIJIL & REKOD GURU</div>
+                    <div id="certDate" class="text-[10px] text-gray-500 font-bold"></div>
+                </div>
+                <div class="text-sm text-gray-900 font-extrabold"><span class="text-amber-800">Nama Murid:</span> <span id="certName">-</span></div>
+                <div class="text-sm text-gray-900 font-extrabold"><span class="text-amber-800">Kelas:</span> <span id="certClass">-</span></div>
+                <hr class="my-2 border-gray-300">
+                <div class="text-center">
+                    <div class="text-xs text-gray-600 font-bold">JUMLAH SKOR AKHIR</div>
+                    <div id="finalScore" class="text-3xl font-extrabold text-green-600">200 / 200</div>
+                    <div id="finalGrade" class="text-xs text-amber-700 mt-1 font-bold">GRED: A+ (CEMERLANG) 🌟</div>
+                </div>
+            </div>
+
+            <!-- Action Buttons for Teacher Report -->
+            <div class="space-y-2 mb-4">
+                <button onclick="copyTeacherReport()" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow border-b-4 border-blue-900 transition flex items-center justify-center space-x-2">
+                    <span>📋 SALIN LAPORAN NAMA & MARKAH (WHATSAPP/TELEGRAM)</span>
+                </button>
+                <button onclick="printTeacherReport()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold py-2.5 px-4 rounded-xl text-sm shadow border-b-4 border-emerald-900 transition flex items-center justify-center space-x-2">
+                    <span>🖨️ CETAK / SIMPAN LAMPIRAN MARKAH (PDF)</span>
+                </button>
+            </div>
+
+            <button onclick="restartGame()" class="w-full bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold py-3 px-6 rounded-xl text-base md:text-lg shadow-lg border-b-4 border-red-900 transition">
+                MAIN SEMULA 🔄
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Player details
+        let playerName = "";
+        let playerClass = "";
+
+        // Game canvas state
+        let canvas, ctx;
+        let score = 0;
+        let answeredCount = 0;
+        let isModalOpen = false;
+        let activeBlockIndex = null;
+        const groundHeight = 50;
+
+        // Mario object
+        const mario = {
+            x: 50,
+            y: 0,
+            width: 32,
+            height: 40,
+            vx: 0,
+            vy: 0,
+            speed: 4,
+            jumpStrength: -11,
+            gravity: 0.5,
+            grounded: false,
+            facing: 'right'
+        };
+
+        // Key states
+        const keys = {
+            left: false,
+            right: false,
+            up: false
+        };
+
+        // Question Blocks Array
+        let blocks = [];
+
+        // Base64 SVG Illustration of the Human Skeleton with ONLY Letter Labels (a) to (l)
+        const skeletonSvgData = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 600' width='100%' height='100%' style='background:%23fff;'><style>text{font-family:sans-serif;font-weight:bold;}.box{fill:%23fff;stroke:%23333;stroke-width:2;}.lbl{font-size:16px;fill:%23c00;font-weight:bold;text-anchor:middle;}.line{stroke:%23000;stroke-width:1.5;stroke-dasharray:3,3;}</style><rect x='10' y='10' width='480' height='30' fill='%23e0e0e0' rx='5'/><text x='250' y='30' text-anchor='middle' fill='%23000' font-size='14' font-weight='bold'>RANGKA MANUSIA (BAB 6)</text><!-- Skeleton Graphic--><g transform='translate(180, 50)'><circle cx='70' cy='30' r='20' fill='%23e0e0e0' stroke='%23000' stroke-width='2'/><rect x='60' y='50' width='20' height='120' fill='%23ccc' stroke='%23000'/><path d='M30,70 L110,70 L100,120 L40,120 Z' fill='none' stroke='%23000' stroke-width='2'/><path d='M20,70 L20,130 M120,70 L120,130' stroke='%23000' stroke-width='3'/><path d='M15,130 L15,180 M125,130 L125,180' stroke='%23000' stroke-width='2.5'/><path d='M40,170 L100,170 L85,210 L55,210 Z' fill='%23ddd' stroke='%23000' stroke-width='2'/><path d='M50,210 L45,340 M90,210 L95,340' stroke='%23000' stroke-width='5'/><circle cx='45' cy='345' r='6' fill='%23888'/><circle cx='95' cy='345' r='6' fill='%23888'/><path d='M40,350 L38,480 M90,350 L88,480' stroke='%23000' stroke-width='4'/><path d='M48,350 L50,475 M98,350 L100,475' stroke='%23666' stroke-width='2.5'/></g><!-- Labels Left (Letters Only) --><rect x='40' y='80' width='60' height='32' class='box' rx='6'/><text x='70' y='102' class='lbl'>(a)</text><line x1='100' y1='96' x2='220' y2='110' class='line'/><rect x='40' y='140' width='60' height='32' class='box' rx='6'/><text x='70' y='162' class='lbl'>(b)</text><line x1='100' y1='156' x2='200' y2='155' class='line'/><rect x='40' y='200' width='60' height='32' class='box' rx='6'/><text x='70' y='222' class='lbl'>(c)</text><line x1='100' y1='216' x2='195' y2='200' class='line'/><rect x='40' y='260' width='60' height='32' class='box' rx='6'/><text x='70' y='282' class='lbl'>(d)</text><line x1='100' y1='276' x2='195' y2='210' class='line'/><rect x='40' y='320' width='60' height='32' class='box' rx='6'/><text x='70' y='342' class='lbl'>(e)</text><line x1='100' y1='336' x2='222' y2='395' class='line'/><!-- Labels Right (Letters Only) --><rect x='400' y='80' width='60' height='32' class='box' rx='6'/><text x='430' y='102' class='lbl'>(f)</text><line x1='400' y1='96' x2='265' y2='75' class='line'/><rect x='400' y='130' width='60' height='32' class='box' rx='6'/><text x='430' y='152' class='lbl'>(g)</text><line x1='400' y1='146' x2='255' y2='145' class='line'/><rect x='400' y='180' width='60' height='32' class='box' rx='6'/><text x='430' y='202' class='lbl'>(h)</text><line x1='400' y1='196' x2='270' y2='130' class='line'/><rect x='400' y='230' width='60' height='32' class='box' rx='6'/><text x='430' y='252' class='lbl'>(i)</text><line x1='400' y1='246' x2='265' y2='240' class='line'/><rect x='400' y='280' width='60' height='32' class='box' rx='6'/><text x='430' y='302' class='lbl'>(j)</text><line x1='400' y1='296' x2='272' y2='310' class='line'/><rect x='400' y='330' width='60' height='32' class='box' rx='6'/><text x='430' y='352' class='lbl'>(k)</text><line x1='400' y1='346' x2='268' y2='420' class='line'/><rect x='400' y='380' width='60' height='32' class='box' rx='6'/><text x='430' y='402' class='lbl'>(l)</text><line x1='400' y1='396' x2='278' y2='430' class='line'/></svg>";
+
+        // 20 SPM Science Questions (Form 4 Chapter 6)
+        const questionsData = [
+            { q: "Berdasarkan rajah rangka, label (a) merujuk kepada tulang apa?", options: ["Lengkungan pektoral", "Lengkungan pelvis", "Humerus", "Kranium"], answer: 0 },
+            { q: "Berdasarkan rajah, label (b) menunjukkan tulang lengan atas iaitu:", options: ["Radius", "Ulna", "Humerus", "Femur"], answer: 2 },
+            { q: "Berdasarkan rajah, label (c) dan (d) ialah tulang pada lengan bawah. Antara berikut yang manakah (c)?", options: ["Ulna", "Radius", "Tibia", "Fibula"], answer: 1 },
+            { q: "Label (e) pada tempurung lutut dikenali sebagai:", options: ["Patela", "Pelvis", "Femur", "Vertebra"], answer: 0 },
+            { q: "Apakah nama tulang tengkorak yang melindungi otak seperti berlabel (f)?", options: ["Turus vertebra", "Kranium", "Tulang rusuk", "Pelvis"], answer: 1 },
+            { q: "Tulang berlabel (g) yang melindungi saraf tunjang ialah:", options: ["Turus vertebra", "Humerus", "Femur", "Patela"], answer: 0 },
+            { q: "Tulang rusuk berlabel (h) berfungsi untuk melindungi organ:", options: ["Otak", "Jantung dan paru-paru", "Ginjal", "Hati sahaja"], answer: 1 },
+            { q: "Tulang paha yang merupakan tulang paling panjang dan kuat berlabel (j) ialah:", options: ["Tibia", "Fibula", "Femur", "Humerus"], answer: 2 },
+            { q: "Berdasarkan rajah, (k) merujuk kepada tulang kumpal iaitu:", options: ["Tibia", "Fibula", "Patela", "Radius"], answer: 0 },
+            { q: "Berat badan haiwan vertebrata akuatik disokong utamanya oleh:", options: ["Lengkungan pelvis", "Tulang belakang", "Daya apungan air", "Otot rangka"], answer: 2 },
+            { q: "Apakah fungsi utama rangka dalam dan luar haiwan?", options: ["Sokong berat badan, mengekalkan bentuk & melindungi organ", "Memproses makanan", "Mengepam darah", "Menghasilkan oksigen"], answer: 0 },
+            { q: "Bendalir dalam rangka hidrostatik mengenakan ______ dalam semua arah untuk menjadikan badan tegar.", options: ["Tarikan", "Tekanan", "Geseran", "Tegangan"], answer: 1 },
+            { q: "Semakin rendah pusat graviti atau semakin ______ luas tapak, semakin stabil sesuatu objek.", options: ["Kecil", "Sama", "Besar", "Tinggi"], answer: 2 },
+            { q: "Apakah tisu penghubung yang menyambungkan TULANG KEPADA TULANG?", options: ["Tendon", "Ligamen", "Rawan", "Cecair sinovial"], answer: 1 },
+            { q: "Tisu penghubung yang menyambungkan OTOT KEPADA TULANG ialah:", options: ["Tendon", "Ligamen", "Rawan", "Daging"], answer: 0 },
+            { q: "Apakah peran utama Rawan (Cartilage) pada sendi?", options: ["Menyambungkan tulang", "Bertindak sebagai kusyen untuk mengurangkan geseran", "Membekalkan tenaga", "Mengecutkan otot"], answer: 1 },
+            { q: "Cecair sinovial berfungsi sebagai ______ untuk mengurangkan geseran semasa pergerakan.", options: ["Kusyen", "Pelincir", "Pengikat", "Pelekat"], answer: 1 },
+            { q: "Haiwan yang manakah mempunyai rangka hidrostatik?", options: ["Kucing dan Anjing", "Cacing tanah dan Obor-obor", "Belalang dan Ketam", "Ikan dan Burung"], answer: 1 },
+            { q: "Kura-kura dan ketam mempunyai jenis rangka:", options: ["Endoskeleton (Rangka dalam)", "Exoskeleton (Rangka luar)", "Rangka Hidrostatik", "Tiada rangka"], answer: 1 },
+            { q: "Pasangan otot yang bekerja secara berlawanan (satu mengecut, satu mengendur) dipanggil:", options: ["Otot antagonistik", "Otot sinergistik", "Otot licin", "Otot kardiak"], answer: 0 }
+        ];
+
+        // Synthesizer Web Audio API Sound Effects
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playCoinSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(987.77, now); // B5
+            osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+
+        function playJumpSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.15);
+        }
+
+        function playApplauseSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    const now = audioCtx.currentTime;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(200 + Math.random() * 400, now);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                }, i * 35);
+            }
+        }
+
+        function playWrongSound() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, now);
+            osc.frequency.linearRampToValueAtTime(110, now + 0.25);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.25);
+        }
+
+        function startGame(e) {
+            e.preventDefault();
+            playerName = document.getElementById('playerName').value.trim();
+            playerClass = document.getElementById('playerClass').value.trim();
+
+            if (!playerName || !playerClass) return;
+
+            document.getElementById('hudPlayerInfo').innerText = `${playerName.toUpperCase()} (${playerClass})`;
+            document.getElementById('startModal').classList.add('hidden');
+
+            initGame();
+        }
+
+        function initBlocks() {
+            blocks = [];
+            const blockWidth = 40;
+            const spacing = 110;
+            const startX = 120;
+            // Kedudukan Y direndahkan daripada 180 kepada 280 supaya mudah ditanduk
+            const blockY = 280;
+
+            for (let i = 0; i < 20; i++) {
+                blocks.push({
+                    x: startX + i * spacing,
+                    y: blockY - (i % 2 === 0 ? 0 : 25),
+                    width: blockWidth,
+                    height: blockWidth,
+                    id: i,
+                    hit: false,
+                    bounce: 0
+                });
+            }
+        }
+
+        function initGame() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            initBlocks();
+
+            mario.x = 50;
+            mario.y = canvas.height - groundHeight - mario.height;
+
+            setupControls();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resizeCanvas() {
+            if (!canvas) return;
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = Math.min(window.innerHeight * 0.55, 480);
+            if (mario.y > canvas.height - groundHeight - mario.height) {
+                mario.y = canvas.height - groundHeight - mario.height;
+            }
+        }
+
+        function setupControls() {
+            window.addEventListener('keydown', e => {
+                if (isModalOpen) return;
+                if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+                if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+                if ((e.key === 'ArrowUp' || e.key === ' ' || e.key === 'w') && mario.grounded) {
+                    mario.vy = mario.jumpStrength;
+                    mario.grounded = false;
+                    playJumpSound();
+                }
+            });
+
+            window.addEventListener('keyup', e => {
+                if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+                if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+            });
+
+            // Mobile Touch Controls
+            const btnLeft = document.getElementById('btnLeft');
+            const btnRight = document.getElementById('btnRight');
+            const btnJump = document.getElementById('btnJump');
+
+            btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); keys.left = true; });
+            btnLeft.addEventListener('touchend', (e) => { e.preventDefault(); keys.left = false; });
+            btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); keys.right = true; });
+            btnRight.addEventListener('touchend', (e) => { e.preventDefault(); keys.right = false; });
+            btnJump.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (mario.grounded && !isModalOpen) {
+                    mario.vy = mario.jumpStrength;
+                    mario.grounded = false;
+                    playJumpSound();
+                }
+            });
+        }
+
+        function update() {
+            if (isModalOpen) return;
+
+            // Horizontal Movement
+            if (keys.left) {
+                mario.vx = -mario.speed;
+                mario.facing = 'left';
+            } else if (keys.right) {
+                mario.vx = mario.speed;
+                mario.facing = 'right';
+            } else {
+                mario.vx = 0;
+            }
+
+            mario.x += mario.vx;
+
+            // Apply Gravity
+            mario.vy += mario.gravity;
+            mario.y += mario.vy;
+
+            // Ground Collision
+            const currentGround = canvas.height - groundHeight - mario.height;
+            if (mario.y >= currentGround) {
+                mario.y = currentGround;
+                mario.vy = 0;
+                mario.grounded = true;
+            }
+
+            // Canvas Boundary Constraints
+            const maxWorldX = 20 * 110 + 200;
+            if (mario.x < 0) mario.x = 0;
+            if (mario.x > maxWorldX) mario.x = maxWorldX;
+
+            // Collision Detection with Question Blocks (Head bump from below)
+            blocks.forEach(block => {
+                if (block.bounce > 0) block.bounce--;
+
+                if (!block.hit &&
+                    mario.x + mario.width > block.x &&
+                    mario.x < block.x + block.width &&
+                    mario.y <= block.y + block.height &&
+                    mario.y + mario.height >= block.y &&
+                    mario.vy < 0) { // Moving upwards
+
+                    mario.vy = 2; // Bounce Mario back down slightly
+                    block.bounce = 8;
+                    activeBlockIndex = block.id;
+                    openQuestion(block.id);
+                }
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Camera offset tracking Mario center
+            const cameraX = Math.max(0, mario.x - canvas.width / 3);
+
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            // Draw Decorative Background Clouds
+            ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+            for (let c = 0; c < 15; c++) {
+                let cx = c * 250 + 50;
+                ctx.beginPath();
+                ctx.arc(cx, 80, 25, 0, Math.PI * 2);
+                ctx.arc(cx + 20, 70, 30, 0, Math.PI * 2);
+                ctx.arc(cx + 45, 80, 25, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw Ground (Green Top, Brown Dirt)
+            const worldWidth = 20 * 110 + 500;
+            ctx.fillStyle = "#5c9400";
+            ctx.fillRect(0, canvas.height - groundHeight, worldWidth, 12);
+            ctx.fillStyle = "#c84c0c";
+            ctx.fillRect(0, canvas.height - groundHeight + 12, worldWidth, groundHeight - 12);
+
+            // Draw Question Blocks
+            blocks.forEach(block => {
+                const drawY = block.y - block.bounce;
+                if (block.hit) {
+                    // Empty Block State
+                    ctx.fillStyle = "#a87038";
+                    ctx.fillRect(block.x, drawY, block.width, block.height);
+                    ctx.strokeStyle = "#402000";
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(block.x, drawY, block.width, block.height);
+                    ctx.fillStyle = "#402000";
+                    ctx.fillRect(block.x + 4, drawY + 4, 4, 4);
+                } else {
+                    // Active Question Block (?)
+                    ctx.fillStyle = "#fc9838";
+                    ctx.fillRect(block.x, drawY, block.width, block.height);
+                    ctx.strokeStyle = "#ffffff";
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(block.x, drawY, block.width, block.height);
+
+                    // Question Mark Text
+                    ctx.fillStyle = "#ffffff";
+                    ctx.font = "bold 22px 'Press Start 2P', cursive, sans-serif";
+                    ctx.fillText("?", block.x + 11, drawY + 29);
+                }
+
+                // Block Label Number
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 11px sans-serif";
+                ctx.fillText(`Q${block.id + 1}`, block.x + 7, drawY - 8);
+            });
+
+            // Draw Mario Character
+            ctx.fillStyle = "#e52521"; // Mario Red Cap & Shirt
+            ctx.fillRect(mario.x + 4, mario.y, 24, 12); // Cap
+            ctx.fillRect(mario.x + 6, mario.y + 16, 20, 12); // Shirt
+
+            ctx.fillStyle = "#fcc082"; // Face
+            ctx.fillRect(mario.x + 6, mario.y + 8, 20, 10);
+
+            ctx.fillStyle = "#0020c2"; // Blue Overalls
+            ctx.fillRect(mario.x + 6, mario.y + 24, 20, 12);
+
+            ctx.fillStyle = "#6d4c41"; // Shoes
+            ctx.fillRect(mario.x + 2, mario.y + 34, 12, 6);
+            ctx.fillRect(mario.x + 18, mario.y + 34, 12, 6);
+
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function openQuestion(index) {
+            isModalOpen = true;
+            const q = questionsData[index];
+
+            document.getElementById('modalQNum').innerText = `SOALAN ${index + 1} / 20`;
+            document.getElementById('modalQuestion').innerText = q.q;
+
+            // Display standard anatomy diagram for skeleton questions
+            const imgContainer = document.getElementById('modalImageContainer');
+            const imgElement = document.getElementById('modalImage');
+            
+            imgElement.src = skeletonSvgData;
+            imgContainer.classList.remove('hidden');
+
+            const optionsContainer = document.getElementById('modalOptions');
+            optionsContainer.innerHTML = '';
+
+            const feedback = document.getElementById('feedback');
+            feedback.classList.add('hidden');
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left bg-white hover:bg-amber-100 active:bg-amber-200 border-2 border-amber-400 text-gray-800 font-bold py-2 px-3 rounded-xl transition flex items-center justify-between text-xs md:text-sm shadow-sm";
+                btn.innerHTML = `<span><b>${String.fromCharCode(65 + idx)}.</b> ${opt}</span>`;
+                btn.onclick = () => checkAnswer(idx, q.answer, btn);
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('questionModal').classList.remove('hidden');
+        }
+
+        function checkAnswer(selected, correct, btnElement) {
+            const feedback = document.getElementById('feedback');
+            feedback.classList.remove('hidden');
+
+            const allBtns = document.getElementById('modalOptions').querySelectorAll('button');
+            allBtns.forEach(b => b.disabled = true);
+
+            if (selected === correct) {
+                playCoinSound();
+                playApplauseSound();
+
+                btnElement.classList.remove('bg-white', 'border-amber-400');
+                btnElement.classList.add('bg-green-500', 'text-white', 'border-green-700');
+
+                feedback.className = "mt-3 text-center font-bold text-sm md:text-lg p-2 rounded-xl bg-green-100 text-green-800 border-2 border-green-400 animate-bounce";
+                feedback.innerHTML = "👏 TAHNIAH! JAWAPAN BETUL! (+10 Markah)";
+
+                score += 10;
+                answeredCount++;
+
+                document.getElementById('score').innerText = `SKOR: ${score}`;
+                document.getElementById('progress').innerText = `${answeredCount} / 20`;
+
+                if (activeBlockIndex !== null) {
+                    blocks[activeBlockIndex].hit = true;
+                }
+
+                setTimeout(() => {
+                    document.getElementById('questionModal').classList.add('hidden');
+                    isModalOpen = false;
+
+                    if (answeredCount >= 20) {
+                        showVictoryScreen();
+                    }
+                }, 1600);
+
+            } else {
+                playWrongSound();
+
+                btnElement.classList.remove('bg-white', 'border-amber-400');
+                btnElement.classList.add('bg-red-500', 'text-white', 'border-red-700');
+
+                feedback.className = "mt-3 text-center font-bold text-sm md:text-lg p-2 rounded-xl bg-red-100 text-red-800 border-2 border-red-400";
+                feedback.innerHTML = "❌ Cuba lagi! Tanduk semula blok ini.";
+
+                setTimeout(() => {
+                    document.getElementById('questionModal').classList.add('hidden');
+                    isModalOpen = false;
+                }, 1600);
+            }
+        }
+
+        function showVictoryScreen() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
+            
+            document.getElementById('certName').innerText = playerName;
+            document.getElementById('certClass').innerText = playerClass;
+            document.getElementById('certDate').innerText = dateStr;
+            document.getElementById('finalScore').innerText = `${score} / 200`;
+            
+            const percentage = (score / 200) * 100;
+            let gradeText = "GRED: A+ (CEMERLANG) 🌟";
+            if (percentage < 50) gradeText = "GRED: D (PERLU USAHA) 📚";
+            else if (percentage < 70) gradeText = "GRED: C (KEPUASAN) 👍";
+            else if (percentage < 85) gradeText = "GRED: B (BAIK) ⭐";
+
+            document.getElementById('finalGrade').innerText = gradeText;
+            document.getElementById('victoryModal').classList.remove('hidden');
+            playApplauseSound();
+        }
+
+        function copyTeacherReport() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const reportText = `📌 *LAPORAN KUIZ SAINS SPM (SUPER MARIO)*\n` +
+                `-----------------------------------\n` +
+                `👤 *Nama Murid:* ${playerName}\n` +
+                `🏫 *Kelas:* ${playerClass}\n` +
+                `📅 *Tarikh:* ${dateStr}\n` +
+                `🎯 *Jumlah Soalan:* 20 Soalan\n` +
+                `💯 *Skor Akhir:* ${score} / 200 (${(score/200)*100}%)\n` +
+                `🏆 *Status:* LULUS & SELESAI\n` +
+                `-----------------------------------\n` +
+                `Disiapkan menerusi Modul Interaktif Sains SPM (Bab 6).`;
+
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = reportText;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+
+            const feedback = document.createElement('div');
+            feedback.className = "fixed bottom-5 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-lg text-xs font-bold z-50 shadow-lg border border-amber-400";
+            feedback.innerText = "✅ Laporan markah telah disalin! Anda boleh 'Paste' terus kepada Guru.";
+            document.body.appendChild(feedback);
+            setTimeout(() => feedback.remove(), 2500);
+        }
+
+        function printTeacherReport() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('ms-MY', { day: 'numeric', month: 'long', year: 'numeric' });
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Lampiran Markah Guru - ${playerName}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 30px; color: #333; line-height: 1.6; }
+                        .header { text-align: center; border-bottom: 3px double #333; padding-bottom: 15px; margin-bottom: 20px; }
+                        .header h1 { margin: 0; color: #b91c1c; font-size: 24px; }
+                        .header h3 { margin: 5px 0 0 0; color: #4b5563; font-size: 16px; }
+                        .info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                        .info-table td { padding: 8px 12px; border: 1px solid #ccc; font-size: 14px; }
+                        .info-table td.label { background-color: #f3f4f6; font-weight: bold; width: 30%; }
+                        .score-box { background-color: #fef3c7; border: 2px solid #f59e0b; padding: 15px; text-align: center; border-radius: 8px; margin-bottom: 20px; }
+                        .score-box h2 { margin: 0; color: #d97706; font-size: 28px; }
+                        .footer { margin-top: 40px; text-align: right; font-size: 12px; color: #666; border-top: 1px solid #ddd; padding-top: 10px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>LAMPIRAN PENTAKSIRAN KUIZ SAINS SPM</h1>
+                        <h3>BAB 6: SOKONGAN, PERGERAKAN DAN PERTUMBUHAN</h3>
+                    </div>
+
+                    <table class="info-table">
+                        <tr><td class="label">Nama Murid:</td><td>${playerName}</td></tr>
+                        <tr><td class="label">Kelas:</td><td>${playerClass}</td></tr>
+                        <tr><td class="label">Tarikh Pelaksanaan:</td><td>${dateStr}</td></tr>
+                        <tr><td class="label">Modul Permainan:</td><td>Super Mario Interaktif Quiz</td></tr>
+                    </table>
+
+                    <div class="score-box">
+                        <p style="margin:0; font-size:12px; font-weight:bold; color:#78350f;">SKOR KESELURUHAN</p>
+                        <h2>${score} / 200 MARKAH</h2>
+                        <p style="margin:5px 0 0 0; font-weight:bold; color:#92400e;">PERATUSAN: ${(score/200)*100}% (LULUS & SELESAI)</p>
+                    </div>
+
+                    <h4>Ringkasan Tugasan:</h4>
+                    <ul>
+                        <li>Telah menamatkan kesemua 20 soalan bertulis/gambar rajah Sains Bab 6.</li>
+                        <li>Sistem telah memberikan ganjaran 10 markah bagi setiap jawapan betul.</li>
+                    </ul>
+
+                    <div class="footer">
+                        <p>Dokumen ini dijana secara automatik oleh Permainan Kuiz Interaktif Super Mario Sains SPM.</p>
+                    </div>
+                    <script>
+                        window.onload = function() { window.print(); }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    </script>
+</body>
+</html>
